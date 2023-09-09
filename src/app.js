@@ -40,16 +40,38 @@ app.set('view engine', 'handlebars');
 app.set('views', './views');
 
 app.get('/', async (req, res) => {
-  res.render('home', { products: (await manager.getProductsFromMongo()).content });
+  res.render('home', { products: (await manager.getProductsFromMongo()).content.map(product =>( 
+    {
+      title: product.title, 
+      description: product.description, 
+      stock: product.stock,
+      id: product._id,
+      price: product.price,
+      
+    })) }
+  );
 });
 
 app.get('/realtimeProducts', async (req, res) => {
-  res.render('index', { products: await manager.getProductsFromMongo() });
+  res.render('index', { products: (await manager.getProductsFromMongo()).content });
 });
 
 app.get('/chat', async (req, res) =>{
   res.render('chat', {messages: await getAllMessages()})
 })
+
+app.get('/products', async (req, res) =>{
+  res.render('products')
+})
+
+app.get('/cart/:cid', async (req, res) =>{
+  const {cid} = req.params
+  const response = await cartsManager.getProductsByIdFromMongo(cid)
+  console.log('hola', response)
+  console.log(cid)
+  res.render('cart', {products: response.content.products.map(prod=> ({_id: prod._id, quantity: prod.quantity}))})
+})
+
 
 const wss = new WebSocket.Server({ noServer: true }); 
 
@@ -84,12 +106,16 @@ wss.on('connection',async (websocket) => {
     });
     }
     else{
+      
       const newProduct = JSON.parse(message);
-      await manager.addProductToMongo(newProduct)
-      const updatedProducts = await manager.getProductsFromMongo()
-  
+      console.log(newProduct)
+      const response = await manager.addProductToMongo(newProduct)
+      console.log(response)
+     
+      
       wss.clients.forEach(async (client) => {
         if (client.readyState === WebSocket.OPEN) {
+          const updatedProducts =  (await manager.getProductsFromMongo())
           console.log(updatedProducts)
           client.send(JSON.stringify(updatedProducts));
         }
@@ -111,6 +137,7 @@ const productsRouter = require('./router/productRouter');
 app.use('/api/products', productsRouter);
 
 const cartRouter = require('./router/cartRouter');
+const { cartsManager } = require('./dao/cartsMangerMongo');
 app.use('/api/cart', cartRouter);
 
 server.listen(port, () => {

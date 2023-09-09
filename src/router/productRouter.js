@@ -2,29 +2,46 @@ const express = require('express')
 
 const router = express.Router()
 
-/* 
-MANAGER DE FILESYSTEM
-const manager = require('../dao/productsManagerMongo').manager; 
- */
 
 
 const {manager} = require('../dao/productsManagerMongo')
 
 router.get('/', async (req, res) => {
-    const { limit } = req.query;
-    let response 
-    if (limit) {
-        response = await manager.getProductsFromMongo(Number(limit))
-    } else {
-        response = await manager.getProductsFromMongo()
-    }
-    if(response.ok){
-        res.status(200).json(response)
-    }
-    else{
-        res.status(400).json('Can not get Products')
+
+    const { limit, page, sort } = req.query;
+    console.log(page)
+
+    try {
+        const response = await manager.getProductsFromMongo(Number(limit), page ? page : 1);
+        
+        if (response.ok) {
+            const { content, totalProducts } = response;
+            
+            const totalPages = Math.ceil(totalProducts / 10);
+            
+            const currentPage = page ? Number(page) : 1;
+
+            const result = {
+                payload: sort == 'desc' ? content.sort( (a, b) => a.price - b.price ) : (sort == 'asc' ? content.sort((a, b) => b.price - b.price) : content),
+                totalPages: totalPages,
+                prevPage: currentPage - 1,
+                nextPage: currentPage + 1,
+                page: currentPage,
+                hasPrevPage: currentPage !== 1,
+                hasNextPage: currentPage < totalPages,
+                prevLink: currentPage !== 1 ? `?page=${currentPage - 1}` : null,
+                nextLink: currentPage < totalPages ? `?page=${currentPage + 1}` : null,
+            };
+           
+            res.status(200).json(result);
+        } else {
+            res.status(400).json('Cannot get Products');
+        }
+    } catch (error) {
+        res.status(500).json('Internal Server Error');
     }
 });
+
 
 router.get('/:pid', async (req, res) => {
     const pid = req.params.pid;

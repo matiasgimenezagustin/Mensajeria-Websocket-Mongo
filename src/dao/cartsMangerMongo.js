@@ -1,4 +1,5 @@
 const {Cart} = require('./models/cartsModel')
+const {Product} = require('./models/productModel')
 const {Counter} = require('./models/counterModel')
 class CartManager {
 
@@ -33,24 +34,34 @@ class CartManager {
 
     async addProductToCartInMongo(cid, pid, quantity) {
         try {
-            const cart = await Cart.findOne({ id: cid });
+            const cart = await Cart.findOne({ id: cid }).populate('products');
            
             if (!cart) {
                 return { ok: false, error: 'Cart not found' };
             }
-            const productIndex = cart.products.findIndex(product => product.id === pid);
-            if (productIndex !== -1) {
-                cart.products[productIndex].quantity += quantity;
+    
+            // Verificar si el producto ya está en el carrito
+            const productInCart = cart.products.find(product => product.id === pid);
+    
+            if (productInCart) {
+                productInCart.quantity += quantity;
             } else {
-                cart.products.push({ id: pid, quantity: quantity });
+                // Utiliza Product.findById para obtener el documento completo del producto
+                const product = await Product.findById(pid);
+                if (!product) {
+                    return { ok: false, error: 'Product not found' };
+                }
+                cart.products.push(product); // Agregar la referencia completa al producto
             }
+    
             await cart.save();
-            return {ok: true, content: cart}
+            return { ok: true, content: cart };
         } catch (error) {
             console.error('Error adding product to cart:', error);
             return { ok: false, error: 'Error adding product to cart' };
         }
     }
+    
 
     async deleteProductsFromCartInMongo(cid, pid, unit) {
         try {
@@ -78,6 +89,48 @@ class CartManager {
         }
     }
 
+    async updateCartFromMongo(cid, pid, newQuantity) {
+        try {
+            const cart = await Cart.findOne({ id: cid });
+            if (!cart) {
+                return { ok: false, error: 'Cart not found' };
+            }
+    
+            const productIndex = cart.products.findIndex(product => product.id === pid);
+            if (productIndex !== -1) {
+                if (newQuantity >= 0) {
+                    cart.products[productIndex].quantity = newQuantity;
+                    await cart.save();
+    
+                    return { ok: true, content: 'Cart updated successfully' };
+                } else {
+                    return { ok: false, error: 'New quantity must be non-negative' };
+                }
+            } else {
+                return { ok: false, error: 'Product not found in cart' };
+            }
+        } catch (error) {
+            console.error('Error updating cart:', error);
+            return { ok: false, error: 'Error updating cart' };
+        }
+    }
+    
+    async deleteAllProductsFromCartInMongo(cid) {
+        try {
+            const cart = await Cart.findOne({ id: cid });
+            if (!cart) {
+                return { ok: false, error: "The cart doesn't exist" };
+            }
+    
+            cart.products = []; // Eliminar todos los productos del carrito
+            await cart.save();
+    
+            return { ok: true, content: 'All products in the cart were deleted successfully' };
+        } catch (error) {
+            console.error('Error deleting all products from cart:', error);
+            return { ok: false, error: 'Error deleting all products from cart' };2
+        }
+    }
 
 }
 

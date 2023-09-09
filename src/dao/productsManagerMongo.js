@@ -33,6 +33,7 @@ class ProductManager {
                 { new: true, upsert: true }
             );
             if (!(await Product.exists({ code: productToAdd.code }))) {
+                console.log('hola' , productToAdd)
                 const newProduct = new Product({
                     ...productToAdd,
                     id: counterDoc.seq,
@@ -46,15 +47,22 @@ class ProductManager {
             return { ok: false, error: ProductManager.errors.incompleteProduct };
         }
     }
-
-    async getProductsFromMongo(limit) {
+    async getProductsFromMongo(limit, page) {
         try {
-            let query = Product.find();
-            if (limit) {
-                query = query.limit(limit);
-            }
+            const perPage = limit || 10; // Tamaño de página predeterminado si no se proporciona limit
+            const skip = (page - 1) * perPage;
+    
+            // Primero, obtenemos la cantidad total de productos en la base de datos
+            const totalProducts = await Product.countDocuments();
+    
+            // Luego, ejecutamos la consulta principal para obtener los productos paginados
+            const query = Product.find()
+                .skip(skip)
+                .limit(perPage);
+    
             const products = await query.exec();
-            return { ok: true, content: products };
+    
+            return { ok: true, content: products, totalProducts};
         } catch (error) {
             return { ok: false, error: 'Error getting products' };
         }
@@ -104,3 +112,5 @@ class ProductManager {
 
 const manager = new ProductManager()
 module.exports = { manager };
+
+

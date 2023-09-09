@@ -36,6 +36,7 @@
 const socket = new WebSocket('ws://localhost:8080/realtimeProducts');
 
 socket.onmessage = (event) => {
+
     const products = JSON.parse(event.data);
     listaHTML.innerHTML = '';  // Limpiar la lista antes de añadir elementos nuevos
     console.log(products)
