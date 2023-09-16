@@ -39,7 +39,7 @@ app.engine('handlebars', engine());
 app.set('view engine', 'handlebars');
 app.set('views', './views');
 
-app.get('/', async (req, res) => {
+/* app.get('/', async (req, res) => {
   res.render('home', { products: (await manager.getProductsFromMongo()).content.map(product =>( 
     {
       title: product.title, 
@@ -51,7 +51,7 @@ app.get('/', async (req, res) => {
     })) }
   );
 });
-
+ */
 app.get('/realtimeProducts', async (req, res) => {
   res.render('index', { products: (await manager.getProductsFromMongo()).content });
 });
@@ -71,6 +71,13 @@ app.get('/cart/:cid', async (req, res) =>{
   console.log(cid)
   res.render('cart', {products: response.content.products.map(prod=> ({_id: prod._id, quantity: prod.quantity}))})
 })
+app.get('/', (req, res)=>{
+  res.render('login')
+})
+app.get('/register', (req, res)=>{
+  res.render('register')
+})
+
 
 
 const wss = new WebSocket.Server({ noServer: true }); 
@@ -139,6 +146,13 @@ app.use('/api/products', productsRouter);
 const cartRouter = require('./router/cartRouter');
 const { cartsManager } = require('./dao/cartsMangerMongo');
 app.use('/api/cart', cartRouter);
+
+const loginRouter = require('./router/loginRouter')
+app.use('/api/login', loginRouter)
+
+const registerRouter = require('./router/registerRouter')
+app.use('/api/register', registerRouter)
+
 
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

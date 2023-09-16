@@ -1,0 +1,40 @@
+
+<section>
+    <h1>Completa el siguiente registro</h1>
+    <form id="loginForm">
+        <div>
+            <label>Nombre de usuario:</label>
+            <input placeholder="pepe16" name="username"/>
+        </div>
+        <div>
+            <label>Mail:</label>
+            <input placeholder="pepe@gmail.com" name="email" type="email"/>
+        </div>
+        <div>
+            <label>Contraseña:</label>
+            <input placeholder="Mi_contraseña" name="password" type="password"/>
+        </div>
+        <input type="submit"/>
+    </form>
+</section>
+
+<script>
+    const formularioLogin = document.getElementById('loginForm')
+    formularioLogin.addEventListener('submit', (e)=>{
+        e.preventDefault()
+        const user = {
+            username: formularioLogin.username.value, 
+            email: formularioLogin.email.value,
+            password: formularioLogin.password.value, 
+        }
+        fetch('http://localhost:8080/api/register', 
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ user })
+            }
+        ).then(res => window.location.href = res.url)
+    })
+</script>
